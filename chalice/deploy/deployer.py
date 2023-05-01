@@ -105,6 +105,7 @@ from chalice.constants import DEFAULT_LAMBDA_TIMEOUT
 from chalice.constants import DEFAULT_LAMBDA_MEMORY_SIZE
 from chalice.constants import DEFAULT_TLS_VERSION
 from chalice.constants import SQS_EVENT_SOURCE_POLICY
+from chalice.constants import RABBITMQ_EVENT_SOURCE_POLICY
 from chalice.constants import KINESIS_EVENT_SOURCE_POLICY
 from chalice.constants import DDB_EVENT_SOURCE_POLICY
 from chalice.constants import POST_TO_WEBSOCKET_CONNECTION_POLICY
@@ -516,6 +517,7 @@ class LambdaEventSourcePolicyInjector(BaseDeployStep):
     def __init__(self):
         # type: () -> None
         self._sqs_policy_injected = False
+        self._rabbitmq_policy_injected = False
         self._kinesis_policy_injected = False
         self._ddb_policy_injected = False
 
@@ -535,6 +537,23 @@ class LambdaEventSourcePolicyInjector(BaseDeployStep):
             self._inject_trigger_policy(document,
                                         SQS_EVENT_SOURCE_POLICY.copy())
             self._sqs_policy_injected = True
+
+    def handle_rabbitmqeventsource(self, config, resource):
+        # type: (Config, models.RabbitMQEventSource) -> None
+        # The rabbitmq integration works by polling for
+        # available records so the lambda function needs
+        # permission to call rabbitmq.
+        role = resource.lambda_function.role
+        if not self._rabbitmq_policy_injected and \
+                self._needs_policy_injected(role):
+            # mypy can't follow the type narrowing from
+            # _needs_policy_injected so we're working around
+            # that by explicitly casting the role.
+            role = cast(models.ManagedIAMRole, role)
+            document = cast(Dict[str, Any], role.policy.document)
+            self._inject_trigger_policy(document,
+                                        RABBITMQ_EVENT_SOURCE_POLICY.copy())
+            self._rabbitmq_policy_injected = True
 
     def handle_kinesiseventsource(self, config, resource):
         # type: (Config, models.KinesisEventSource) -> None

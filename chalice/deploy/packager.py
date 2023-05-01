@@ -96,9 +96,13 @@ class BaseLambdaDeploymentPackager(object):
         raise NotImplementedError("create_deployment_package")
 
     def _get_requirements_filename(self, project_dir: str) -> str:
-        # Gets the path to a requirements.txt file out of a project dir path
-        return self._osutils.joinpath(project_dir, 'requirements.txt')
-
+        for filename in ['requirements_chalice.txt', 'requirements_cicd.txt', 'requirements.txt']:
+            # Gets the path to a requirements.txt file out of a project dir path
+            path = self._osutils.joinpath(project_dir, filename)
+            if self._osutils.file_exists(path):
+                return path
+        raise ValueError("Unable to find requirements.txt file")
+    
     def _add_vendor_files(
         self, zipped: ZipFile, dirname: str, prefix: str = ''
     ) -> None:

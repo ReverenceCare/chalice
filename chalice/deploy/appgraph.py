@@ -134,6 +134,15 @@ class ApplicationGraphBuilder(object):
                         stage_name,
                     )
                 )
+            elif isinstance(event_source, app.RabbitMQEventConfig):
+                resources.append(
+                    self._create_rabbitmq_subscription(
+                        config,
+                        deployment,
+                        event_source,
+                        stage_name,
+                    )
+                )
             elif isinstance(event_source, app.KinesisEventConfig):
                 resources.append(
                     self._create_kinesis_subscription(
@@ -666,6 +675,34 @@ class ApplicationGraphBuilder(object):
             maximum_batching_window_in_seconds=batch_window,
         )
         return sqs_event_source
+
+    def _create_rabbitmq_subscription(
+        self,
+        config: Config,
+        deployment: models.DeploymentPackage,
+        rabbitmq_config: app.RabbitMQEventConfig,
+        stage_name: str,
+    ) -> models.RabbitMQEventSource:
+        lambda_function = self._create_lambda_model(
+            config=config,
+            deployment=deployment,
+            name=rabbitmq_config.name,
+            handler_name=rabbitmq_config.handler_string,
+            stage_name=stage_name,
+        )
+        resource_name = rabbitmq_config.name + '-rabbitmq-event-source'
+        queue: str = ''
+        if rabbitmq_config.queue is not None:
+            queue = rabbitmq_config.queue
+        batch_window = rabbitmq_config.maximum_batching_window_in_seconds
+        rabbitmq_event_source = models.RabbitMQEventSource(
+            resource_name=resource_name,
+            queue=queue,
+            batch_size=rabbitmq_config.batch_size,
+            lambda_function=lambda_function,
+            maximum_batching_window_in_seconds=batch_window,
+        )
+        return rabbitmq_event_source
 
     def _create_kinesis_subscription(
         self,

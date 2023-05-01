@@ -350,6 +350,14 @@ class SQSEventSource(FunctionEventSubscriber):
 
 
 @dataclass
+class RabbitMQEventSource(FunctionEventSubscriber):
+    resource_type = 'rabbitmq_event'
+    queue: str
+    batch_size: int
+    maximum_batching_window_in_seconds: int
+
+
+@dataclass
 class KinesisEventSource(FunctionEventSubscriber):
     resource_type = 'kinesis_event'
     stream: str

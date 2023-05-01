@@ -26,6 +26,7 @@ class ResourceSweeper(object):
         's3_event',
         'sns_event',
         'sqs_event',
+        'rabbitmq_event',
         'kinesis_event',
         'dynamodb_event',
         'domain_name'
@@ -76,6 +77,17 @@ class ResourceSweeper(object):
         return None
 
     def _determine_sqs_event(self, name, resource_values):
+        # type: (str, Dict[str, str]) -> Optional[str]
+        existing_queue = resource_values['queue']
+        referenced_queue = [instruction for instruction in self.marked[name]
+                            if instruction.name == 'queue' and
+                            isinstance(instruction,
+                                       models.RecordResourceValue)][0]
+        if referenced_queue.value != existing_queue:
+            return name
+        return None
+
+    def _determine_rabbitmq_event(self, name, resource_values):
         # type: (str, Dict[str, str]) -> Optional[str]
         existing_queue = resource_values['queue']
         referenced_queue = [instruction for instruction in self.marked[name]

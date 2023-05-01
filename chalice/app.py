@@ -779,6 +779,21 @@ class DecoratorAPI(object):
             }
         )
 
+    def on_rabbitmq_message(self, queue: Optional[str] = None, batch_size: int = 1,
+                            name: Optional[str] = None,
+                            maximum_batching_window_in_seconds: int = 0
+                            ) -> Callable[..., Any]:
+        return self._create_registration_function(
+            handler_type='on_rabbitmq_message',
+            name=name,
+            registration_kwargs={
+                'queue': queue,
+                'batch_size': batch_size,
+                'maximum_batching_window_in_seconds':
+                    maximum_batching_window_in_seconds
+            }
+        )
+
     def on_cw_event(self, event_pattern: Dict[str, Any],
                     name: Optional[str] = None) -> Callable[..., Any]:
         return self._create_registration_function(
@@ -1100,6 +1115,27 @@ class _HandlerRegistration(object):
                 'maximum_batching_window_in_seconds'],
         )
         self.event_sources.append(sqs_config)
+
+    def _register_on_rabbitmq_message(self, name: str,
+                                 handler_string: str,
+                                 kwargs: Any,
+                                 **unused: Dict[str, Any]
+                                 ) -> None:
+        queue = kwargs.get('queue')
+        if not queue:
+            raise ValueError(
+                "Must provide `queue` to the "
+                "`on_rabbitmq_message` decorator."
+            )
+        rabbitmq_config = RabbitMQEventConfig(
+            name=name,
+            handler_string=handler_string,
+            queue=queue,
+            batch_size=kwargs['batch_size'],
+            maximum_batching_window_in_seconds=kwargs[
+                'maximum_batching_window_in_seconds'],
+        )
+        self.event_sources.append(rabbitmq_config)
 
     def _register_on_kinesis_record(self,
                                     name: str,
@@ -1631,6 +1667,17 @@ class SQSEventConfig(BaseEventSourceConfig):
             maximum_batching_window_in_seconds
 
 
+class RabbitMQEventConfig(BaseEventSourceConfig):
+    def __init__(self, name: str, handler_string: str, queue: Optional[str],
+                 batch_size: int,
+                 maximum_batching_window_in_seconds: int):
+        super(RabbitMQEventConfig, self).__init__(name, handler_string)
+        self.queue: Optional[str] = queue
+        self.batch_size: int = batch_size
+        self.maximum_batching_window_in_seconds: int = \
+            maximum_batching_window_in_seconds
+
+
 class KinesisEventConfig(BaseEventSourceConfig):
     def __init__(self, name: str, handler_string: str, stream: str,
                  batch_size: int, starting_position: str,
@@ -2069,6 +2116,24 @@ class SQSRecord(BaseLambdaEvent):
         self.receipt_handle: str = event_dict['receiptHandle']
 
 
+class RabbitMQEvent(BaseLambdaEvent):
+    def _extract_attributes(self, event_dict: Dict[str, Any]) -> None:
+        # We don't extract anything off the top level
+        # event.
+        pass
+
+    def __iter__(self) -> Iterator['RabbitMQRecord']:
+        for record in self._event_dict['Records']:
+            yield RabbitMQRecord(record, self.context)
+
+
+class RabbitMQRecord(BaseLambdaEvent):
+
+    def _extract_attributes(self, event_dict: Dict[str, Any]) -> None:
+        self.body: str = event_dict['body']
+        self.routing_key: str = event_dict['routingKey']
+
+
 class KinesisEvent(BaseLambdaEvent):
     def _extract_attributes(self, event_dict: Dict[str, Any]) -> None:
         pass
@@ -2271,6 +2336,7 @@ _EVENT_CLASSES = {
     'on_s3_event': S3Event,
     'on_sns_message': SNSEvent,
     'on_sqs_message': SQSEvent,
+    'on_rabbitmq_message': RabbitMQEvent,
     'on_cw_event': CloudWatchEvent,
     'on_kinesis_record': KinesisEvent,
     'on_dynamodb_record': DynamoDBEvent,
@@ -2283,6 +2349,7 @@ _MIDDLEWARE_MAPPING = {
     'on_s3_event': 's3',
     'on_sns_message': 'sns',
     'on_sqs_message': 'sqs',
+    'on_rabbitmq_message': 'rabbitmq',
     'on_cw_event': 'cloudwatch',
     'on_kinesis_record': 'kinesis',
     'on_dynamodb_record': 'dynamodb',

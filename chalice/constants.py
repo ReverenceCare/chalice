@@ -251,6 +251,17 @@ SQS_EVENT_SOURCE_POLICY = {
 }
 
 
+RABBITMQ_EVENT_SOURCE_POLICY = {
+    "Effect": "Allow",
+    "Action": [
+        "mq:ReceiveMessage",
+        "mq:DeleteMessage",
+        "mq:GetQueueAttributes",
+    ],
+    "Resource": "*",
+}
+
+
 KINESIS_EVENT_SOURCE_POLICY = {
     "Effect": "Allow",
     "Action": [

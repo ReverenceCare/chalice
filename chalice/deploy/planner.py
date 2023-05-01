@@ -102,6 +102,21 @@ class RemoteState(object):
             function_arn=deployed_values['lambda_arn'],
         )
 
+    def _resource_exists_rabbitmqeventsource(self, resource):
+        # type: (models.RabbitMQEventSource) -> bool
+        try:
+            deployed_values = self._deployed_resources.resource_values(
+                resource.resource_name)
+        except ValueError:
+            return False
+        resource_name = resource.queue
+        return self._client.verify_event_source_current(
+            event_uuid=deployed_values['event_uuid'],
+            resource_name=resource_name,
+            service_name='rabbitmq',
+            function_arn=deployed_values['lambda_arn'],
+        )
+
     def _resource_exists_kinesiseventsource(self, resource):
         # type: (models.KinesisEventSource) -> bool
         try:
@@ -759,6 +774,60 @@ class PlanStage(object):
         ] + self._batch_record_resource(
             'sqs_event', resource.resource_name, {
                 'queue_arn': Variable(queue_arn_varname),
+                'event_uuid': Variable(uuid_varname),
+                'queue': queue_name,
+                'lambda_arn': Variable(function_arn.name)
+            }
+        )
+
+    def _plan_rabbitmqeventsource(self, resource):
+        # type: (models.RabbitMQEventSource) -> Sequence[InstructionMsg]
+        queue_varname = '%s_queue' % resource.resource_name
+        uuid_varname = '%s_uuid' % resource.resource_name
+        function_arn = Variable(
+            '%s_lambda_arn' % resource.lambda_function.resource_name
+        )
+        instruction_for_queue_arn = self._arn_parse_instructions(
+            function_arn)
+        instruction_for_queue_arn.append(
+            models.StoreValue(
+                name=queue_varname,
+                value=resource.queue
+            )
+        )
+        queue_name = resource.queue
+        if self._remote_state.resource_exists(resource):
+            deployed = self._remote_state.resource_deployed_values(resource)
+            uuid = deployed['event_uuid']
+            return instruction_for_queue_arn + [
+                models.APICall(
+                    method_name='update_lambda_event_source',
+                    params={'event_uuid': uuid,
+                            'batch_size': resource.batch_size,
+                            'maximum_batching_window_in_seconds':
+                                resource.maximum_batching_window_in_seconds}
+                )
+            ] + self._batch_record_resource(
+                'rabbitmq_event', resource.resource_name, {
+                    'queue': deployed['queue'],
+                    'event_uuid': uuid,
+                    'lambda_arn': deployed['lambda_arn'],
+                }
+            )
+        return instruction_for_queue_arn + [
+            (models.APICall(
+                method_name='create_lambda_event_source',
+                params={'event_source_arn': Variable(queue_varname),
+                        'batch_size': resource.batch_size,
+                        'maximum_batching_window_in_seconds':
+                            resource.maximum_batching_window_in_seconds,
+                        'function_name': function_arn},
+                output_var=uuid_varname,
+            ), 'Subscribing %s to RabbitMQ queue %s\n'
+                % (resource.lambda_function.function_name, resource.queue)
+            ),
+        ] + self._batch_record_resource(
+            'rabbitmq_event', resource.resource_name, {
                 'event_uuid': Variable(uuid_varname),
                 'queue': queue_name,
                 'lambda_arn': Variable(function_arn.name)
