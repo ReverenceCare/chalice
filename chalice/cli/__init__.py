@@ -188,8 +188,11 @@ def deploy(ctx, autogen_policy, profile, api_gateway_stage, stage,
                                         config=config,
                                         ui=ui)
     deployed_values = d.deploy(config, chalice_stage_name=stage)
-    reporter = factory.create_deployment_reporter(ui=ui)
-    reporter.display_report(deployed_values)
+    # reporter = factory.create_deployment_reporter(ui=ui)
+    # reporter.display_report(deployed_values)
+    print(json.dumps(deployed_values, indent=2))
+    with open(".chalice/deployed_values.json", "w") as f:
+        f.write(json.dumps(deployed_values, indent=4))
 
 
 @cli.group()
@@ -334,6 +337,8 @@ def delete(ctx, profile, stage):
     session = factory.create_botocore_session()
     d = factory.create_deletion_deployer(session=session, ui=UI())
     d.deploy(config, chalice_stage_name=stage)
+    if os.path.exists('.chalice/deployed_values.json'):
+        os.remove('.chalice/deployed_values.json')
 
 
 @cli.command()
@@ -644,6 +649,6 @@ def main():
     except ExperimentalFeatureError as e:
         click.echo(str(e))
         return 2
-    except Exception:
+    except Exception as e:
         click.echo(traceback.format_exc(), err=True)
         return 2
