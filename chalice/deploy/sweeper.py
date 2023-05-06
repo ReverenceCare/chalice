@@ -362,6 +362,17 @@ class ResourceSweeper(object):
             )
         }
 
+    def _delete_rabbitmq_event(self, resource_values):
+        # type: (Dict[str, Any]) -> ResourceValueType
+        return {
+            'instructions': (
+                models.APICall(
+                    method_name='remove_lambda_event_source',
+                    params={'event_uuid': resource_values['event_uuid']},
+                ),
+            )
+        }
+
     def _delete_kinesis_event(self, resource_values):
         # type: (Dict[str, Any]) -> ResourceValueType
         return {
