@@ -1,26 +1,24 @@
 """Chalice app and routing code."""
+import base64
+import copy
+import datetime
+import decimal
+import functools
+import json
+import logging
+import os
 # pylint: disable=too-many-lines,ungrouped-imports
 import re
 import sys
-import os
-import logging
-import json
 import traceback
-import decimal
-import base64
-import copy
-import functools
-import datetime
 from collections import defaultdict
-
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 # Implementation note:  This file is intended to be a standalone file
 # that gets copied into the lambda deployment package.  It has no dependencies
 # on other parts of chalice, so it can stay small and lightweight, with minimal
 # startup overhead.
 from urllib.parse import unquote_plus
-from collections.abc import Mapping
-from collections.abc import MutableMapping
-
 
 __version__: str = '1.28.0'
 
@@ -251,7 +249,6 @@ class IAMAuthorizer(Authorizer):
 
 
 class CognitoUserPoolAuthorizer(Authorizer):
-
     _AUTH_TYPE: str = 'cognito_user_pools'
 
     def __init__(self, name: str, provider_arns: List[str],
@@ -288,7 +285,6 @@ class CognitoUserPoolAuthorizer(Authorizer):
 
 
 class CustomAuthorizer(Authorizer):
-
     _AUTH_TYPE = 'custom'
 
     def __init__(self, name: str, authorizer_uri: str, ttl_seconds: int = 300,
@@ -446,7 +442,7 @@ class Request(object):
         copied = {
             k: v for k, v in self.__dict__.items()
             if not k.startswith('_') and
-            k not in self._NON_SERIALIZED_ATTRS
+               k not in self._NON_SERIALIZED_ATTRS
         }
         # We want the output of `to_dict()` to be
         # JSON serializable, so we need to remove the CaseInsensitive dict.
@@ -587,7 +583,6 @@ class RouteEntry(object):
 
 
 class APIGateway(object):
-
     _DEFAULT_BINARY_TYPES = [
         'application/octet-stream', 'application/x-tar', 'application/zip',
         'audio/basic', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav',
@@ -725,6 +720,7 @@ class DecoratorAPI(object):
         ) -> Callable[..., Any]:
             self.register_middleware(func, event_type)
             return func
+
         return _middleware_wrapper
 
     def authorizer(self, ttl_seconds: Optional[int] = None,
@@ -779,7 +775,10 @@ class DecoratorAPI(object):
             }
         )
 
-    def on_rabbitmq_message(self, queue: Optional[str] = None, batch_size: int = 1,
+    def on_rabbitmq_message(self, queue: Optional[str] = None,
+                            broker_arn: Optional[str] = None,
+                            secrets_arn: Optional[str] = None,
+                            batch_size: int = 1,
                             name: Optional[str] = None,
                             maximum_batching_window_in_seconds: int = 0
                             ) -> Callable[..., Any]:
@@ -788,6 +787,8 @@ class DecoratorAPI(object):
             name=name,
             registration_kwargs={
                 'queue': queue,
+                'broker_arn': broker_arn,
+                'secrets_arn': secrets_arn,
                 'batch_size': batch_size,
                 'maximum_batching_window_in_seconds':
                     maximum_batching_window_in_seconds
@@ -903,6 +904,7 @@ class DecoratorAPI(object):
             self._register_handler(handler_type, handler_name,
                                    user_handler, wrapped, kwargs)
             return wrapped
+
         return _register_handler
 
     def _wrap_handler(self, handler_type: str,
@@ -1117,20 +1119,24 @@ class _HandlerRegistration(object):
         self.event_sources.append(sqs_config)
 
     def _register_on_rabbitmq_message(self, name: str,
-                                 handler_string: str,
-                                 kwargs: Any,
-                                 **unused: Dict[str, Any]
-                                 ) -> None:
+                                      handler_string: str,
+                                      kwargs: Any,
+                                      **unused: Dict[str, Any]
+                                      ) -> None:
         queue = kwargs.get('queue')
-        if not queue:
+        broker_arn = kwargs.get('broker_arn')
+        secrets_arn = kwargs.get('secrets_arn')
+        if not queue or not broker_arn:
             raise ValueError(
-                "Must provide `queue` to the "
+                "Must provide `queue` and `broker_arn` to the "
                 "`on_rabbitmq_message` decorator."
             )
         rabbitmq_config = RabbitMQEventConfig(
             name=name,
             handler_string=handler_string,
             queue=queue,
+            broker_arn=broker_arn,
+            secrets_arn=secrets_arn,
             batch_size=kwargs['batch_size'],
             maximum_batching_window_in_seconds=kwargs[
                 'maximum_batching_window_in_seconds'],
@@ -1668,11 +1674,19 @@ class SQSEventConfig(BaseEventSourceConfig):
 
 
 class RabbitMQEventConfig(BaseEventSourceConfig):
-    def __init__(self, name: str, handler_string: str, queue: Optional[str],
+    def __init__(self, name: str, handler_string: str,
+                 queue: Optional[str],
                  batch_size: int,
-                 maximum_batching_window_in_seconds: int):
+                 broker_arn: Optional[str],
+                 maximum_batching_window_in_seconds: int,
+                 secrets_arn: Optional[str] = os.environ.get(
+                     "RABBITMQ_SECRETS_ARN",
+                     "arn:aws:secretsmanager:us-east-1:555263559327:secret:rcp/dev/rabbitmq-qr2s4W"),
+                 ):
         super(RabbitMQEventConfig, self).__init__(name, handler_string)
         self.queue: Optional[str] = queue
+        self.broker_arn: Optional[str] = broker_arn
+        self.secrets_arn: Optional[str] = secrets_arn
         self.batch_size: int = batch_size
         self.maximum_batching_window_in_seconds: int = \
             maximum_batching_window_in_seconds
@@ -2291,6 +2305,7 @@ class Blueprint(DecoratorAPI):
                 handler_type, name, user_handler, wrapped_handler,
                 kwargs, options
             )
+
         self._deferred_registrations.append(_register_blueprint_handler)
 
     def _get_middleware_handlers(self, event_type: str) -> List:
@@ -2324,6 +2339,7 @@ class ConvertToMiddleware(object):
         @functools.wraps(self._wrapper)
         def wrapped(original_event: Any, context: Any) -> Any:
             return get_response(event)
+
         return self._wrapper(wrapped)(original_event, context)
 
     def _extract_original_param(self, event: Any) -> Tuple[Any, Optional[Any]]:
@@ -2343,7 +2359,6 @@ _EVENT_CLASSES = {
     'schedule': CloudWatchEvent,
     'lambda_function': LambdaFunctionEvent,
 }
-
 
 _MIDDLEWARE_MAPPING = {
     'on_s3_event': 's3',

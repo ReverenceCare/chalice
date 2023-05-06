@@ -1821,6 +1821,8 @@ class TypedAWSClient(object):
         event_source_arn: str,
         function_name: str,
         batch_size: int,
+        queues: Optional[List[str]] = None,
+        secrets_arn: Optional[str] = None,
         starting_position: Optional[str] = None,
         maximum_batching_window_in_seconds: Optional[int] = 0,
     ) -> None:
@@ -1832,6 +1834,13 @@ class TypedAWSClient(object):
             'BatchSize': batch_size,
             'MaximumBatchingWindowInSeconds': batch_window,
         }
+        if queues and event_source_arn.startswith('arn:aws:mq'):
+            kwargs['Queues'] = queues
+            kwargs['SourceAccessConfigurations'] = [{
+                "Type": "BASIC_AUTH",
+                "URI": secrets_arn
+            }]
+
         if starting_position is not None:
             kwargs['StartingPosition'] = starting_position
         return self._call_client_method_with_retries(

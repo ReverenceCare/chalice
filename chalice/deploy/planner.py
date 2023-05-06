@@ -783,19 +783,33 @@ class PlanStage(object):
     def _plan_rabbitmqeventsource(self, resource):
         # type: (models.RabbitMQEventSource) -> Sequence[InstructionMsg]
         queue_varname = '%s_queue' % resource.resource_name
+        broker_arn_varname = '%s_broker_arn' % resource.resource_name
+        secrets_arn_varname = '%s_secrets_arn' % resource.resource_name
         uuid_varname = '%s_uuid' % resource.resource_name
         function_arn = Variable(
             '%s_lambda_arn' % resource.lambda_function.resource_name
         )
         instruction_for_queue_arn = self._arn_parse_instructions(
             function_arn)
-        instruction_for_queue_arn.append(
+        instruction_for_queue_arn.extend([
             models.StoreValue(
                 name=queue_varname,
                 value=resource.queue
-            )
+            ),
+            models.StoreValue(
+                name=broker_arn_varname,
+                value=resource.broker_arn
+            ),
+            models.StoreValue(
+                name=secrets_arn_varname,
+                value=resource.secrets_arn
+            ),
+            ]
         )
         queue_name = resource.queue
+        broker_arn = resource.broker_arn
+        secrets_arn = resource.secrets_arn
+
         if self._remote_state.resource_exists(resource):
             deployed = self._remote_state.resource_deployed_values(resource)
             uuid = deployed['event_uuid']
@@ -810,6 +824,8 @@ class PlanStage(object):
             ] + self._batch_record_resource(
                 'rabbitmq_event', resource.resource_name, {
                     'queue': deployed['queue'],
+                    'broker_arn': deployed['broker_arn'],
+                    'secrets_arn': deployed['secrets_arn'],
                     'event_uuid': uuid,
                     'lambda_arn': deployed['lambda_arn'],
                 }
@@ -817,7 +833,9 @@ class PlanStage(object):
         return instruction_for_queue_arn + [
             (models.APICall(
                 method_name='create_lambda_event_source',
-                params={'event_source_arn': Variable(queue_varname),
+                params={'event_source_arn': Variable(broker_arn_varname),
+                        'queues': [Variable(queue_varname)],
+                        'secrets_arn': Variable(secrets_arn_varname),
                         'batch_size': resource.batch_size,
                         'maximum_batching_window_in_seconds':
                             resource.maximum_batching_window_in_seconds,
@@ -830,6 +848,8 @@ class PlanStage(object):
             'rabbitmq_event', resource.resource_name, {
                 'event_uuid': Variable(uuid_varname),
                 'queue': queue_name,
+                'broker_arn': broker_arn,
+                'secrets_arn': secrets_arn,
                 'lambda_arn': Variable(function_arn.name)
             }
         )

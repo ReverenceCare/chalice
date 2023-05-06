@@ -692,12 +692,20 @@ class ApplicationGraphBuilder(object):
         )
         resource_name = rabbitmq_config.name + '-rabbitmq-event-source'
         queue: str = ''
+        broker_arn: str = ''
+        secrets_arn: str = ''
         if rabbitmq_config.queue is not None:
             queue = rabbitmq_config.queue
+        if rabbitmq_config.broker_arn is not None:
+            broker_arn = rabbitmq_config.broker_arn
+        if rabbitmq_config.secrets_arn is not None:
+            secrets_arn = rabbitmq_config.secrets_arn
         batch_window = rabbitmq_config.maximum_batching_window_in_seconds
         rabbitmq_event_source = models.RabbitMQEventSource(
             resource_name=resource_name,
             queue=queue,
+            broker_arn=broker_arn,
+            secrets_arn=secrets_arn,
             batch_size=rabbitmq_config.batch_size,
             lambda_function=lambda_function,
             maximum_batching_window_in_seconds=batch_window,

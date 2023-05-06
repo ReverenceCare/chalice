@@ -353,6 +353,8 @@ class SQSEventSource(FunctionEventSubscriber):
 class RabbitMQEventSource(FunctionEventSubscriber):
     resource_type = 'rabbitmq_event'
     queue: str
+    broker_arn: str
+    secrets_arn: str
     batch_size: int
     maximum_batching_window_in_seconds: int
 
