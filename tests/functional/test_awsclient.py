@@ -1,22 +1,22 @@
-import json
 import datetime
+import json
 import time
 
-import pytest
-import mock
 import botocore.exceptions
+import mock
+import pytest
+from botocore import stub
+from botocore.utils import datetime2timestamp
 from botocore.vendored.requests import ConnectionError as \
     RequestsConnectionError
 from botocore.vendored.requests.exceptions import ReadTimeout as \
     RequestsReadTimeout
-from botocore import stub
-from botocore.utils import datetime2timestamp
 
-from chalice.awsclient import TypedAWSClient
-from chalice.awsclient import ResourceDoesNotExistError
 from chalice.awsclient import DeploymentPackageTooLargeError
 from chalice.awsclient import LambdaClientError
 from chalice.awsclient import ReadTimeout
+from chalice.awsclient import ResourceDoesNotExistError
+from chalice.awsclient import TypedAWSClient
 
 
 def create_policy_statement(source_arn, service_name, statement_id,
@@ -96,8 +96,8 @@ def test_rest_api_exists(stubbed_session):
 def test_rest_api_not_exists(stubbed_session):
     stubbed_session.stub('apigateway').get_rest_api(
         restApiId='api').raises_error(
-            error_code='NotFoundException',
-            message='ResourceNotFound')
+        error_code='NotFoundException',
+        message='ResourceNotFound')
     stubbed_session.activate_stubs()
 
     awsclient = TypedAWSClient(stubbed_session)
@@ -125,14 +125,14 @@ def test_can_get_function_configuration(stubbed_session):
 def test_can_iterate_logs(stubbed_session):
     stubbed_session.stub('logs').filter_log_events(
         logGroupName='loggroup', interleaved=True).returns({
-            "events": [{
-                "logStreamName": "logStreamName",
-                "timestamp": 1501278366000,
-                "message": "message",
-                "ingestionTime": 1501278366000,
-                "eventId": "eventId"
-            }],
-        })
+        "events": [{
+            "logStreamName": "logStreamName",
+            "timestamp": 1501278366000,
+            "message": "message",
+            "ingestionTime": 1501278366000,
+            "eventId": "eventId"
+        }],
+    })
 
     stubbed_session.activate_stubs()
 
@@ -158,14 +158,14 @@ def test_can_provide_optional_start_time_iter_logs(stubbed_session):
     datetime_now = datetime.datetime.utcfromtimestamp(timestamp / 1000.0)
     stubbed_session.stub('logs').filter_log_events(
         logGroupName='loggroup', interleaved=True).returns({
-            "events": [{
-                "logStreamName": "logStreamName",
-                "timestamp": timestamp,
-                "message": "message",
-                "ingestionTime": timestamp,
-                "eventId": "eventId"
-            }],
-        })
+        "events": [{
+            "logStreamName": "logStreamName",
+            "timestamp": timestamp,
+            "message": "message",
+            "ingestionTime": timestamp,
+            "eventId": "eventId"
+        }],
+    })
 
     stubbed_session.activate_stubs()
 
@@ -185,8 +185,8 @@ def test_can_provide_optional_start_time_iter_logs(stubbed_session):
 def test_missing_log_messages_doesnt_fail(stubbed_session):
     stubbed_session.stub('logs').filter_log_events(
         logGroupName='loggroup', interleaved=True).raises_error(
-            error_code='ResourceNotFoundException',
-            message='ResourceNotFound')
+        error_code='ResourceNotFoundException',
+        message='ResourceNotFound')
     stubbed_session.activate_stubs()
 
     awsclient = TypedAWSClient(stubbed_session)
@@ -215,14 +215,14 @@ def test_can_call_filter_log_events(stubbed_session):
         next_token='nexttoken',
         start_time=datetime.datetime(2020, 1, 1)
     ) == {
-        'events': [{
-            "logStreamName": "logStreamName",
-            "timestamp": timestamp,
-            "message": "message",
-            "ingestionTime": timestamp,
-            "eventId": "eventId"
-        }]
-    }
+               'events': [{
+                   "logStreamName": "logStreamName",
+                   "timestamp": timestamp,
+                   "message": "message",
+                   "ingestionTime": timestamp,
+                   "eventId": "eventId"
+               }]
+           }
 
 
 def test_optional_kwarg_on_filter_logs_omitted(stubbed_session):
@@ -243,21 +243,21 @@ def test_optional_kwarg_on_filter_logs_omitted(stubbed_session):
     assert awsclient.filter_log_events(
         log_group_name='loggroup',
     ) == {
-        'events': [{
-            "logStreamName": "logStreamName",
-            "timestamp": timestamp,
-            "message": "message",
-            "ingestionTime": timestamp,
-            "eventId": "eventId"
-        }]
-    }
+               'events': [{
+                   "logStreamName": "logStreamName",
+                   "timestamp": timestamp,
+                   "message": "message",
+                   "ingestionTime": timestamp,
+                   "eventId": "eventId"
+               }]
+           }
 
 
 def test_missing_log_events_returns_empty_response(stubbed_session):
     stubbed_session.stub('logs').filter_log_events(
         logGroupName='loggroup', interleaved=True).raises_error(
-            error_code='ResourceNotFoundException',
-            message='ResourceNotFound')
+        error_code='ResourceNotFoundException',
+        message='ResourceNotFound')
     stubbed_session.activate_stubs()
 
     awsclient = TypedAWSClient(stubbed_session)
@@ -277,7 +277,7 @@ class TestLambdaLayer(object):
     def test_layer_exists(self, stubbed_session):
         stubbed_session.stub('lambda').get_layer_version_by_arn(
             Arn='arn:xyz').returns(
-                {'LayerVersionArn': 'arn:xyz'})
+            {'LayerVersionArn': 'arn:xyz'})
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.get_layer_version('arn:xyz') == {
@@ -286,8 +286,8 @@ class TestLambdaLayer(object):
     def test_layer_exists_not_found_error(self, stubbed_session):
         stubbed_session.stub('lambda').get_layer_version_by_arn(
             Arn='arn:xyz').raises_error(
-                error_code='ResourceNotFoundException',
-                message='Not Found')
+            error_code='ResourceNotFoundException',
+            message='Not Found')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.get_layer_version('arn:xyz') == {}
@@ -296,8 +296,8 @@ class TestLambdaLayer(object):
         stubbed_session.stub('lambda').delete_layer_version(
             LayerName='xyz',
             VersionNumber=4).raises_error(
-                error_code='ResourceNotFoundException',
-                message='Not Found')
+            error_code='ResourceNotFoundException',
+            message='Not Found')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.delete_layer_version('arn:xyz:4') is None
@@ -335,8 +335,8 @@ class TestLambdaLayer(object):
 class TestLambdaFunctionExists(object):
 
     def test_can_query_lambda_function_exists(self, stubbed_session):
-        stubbed_session.stub('lambda').get_function(FunctionName='myappname')\
-                .returns({'Code': {}, 'Configuration': {}})
+        stubbed_session.stub('lambda').get_function(FunctionName='myappname') \
+            .returns({'Code': {}, 'Configuration': {}})
 
         stubbed_session.activate_stubs()
 
@@ -346,9 +346,9 @@ class TestLambdaFunctionExists(object):
         stubbed_session.verify_stubs()
 
     def test_can_query_lambda_function_does_not_exist(self, stubbed_session):
-        stubbed_session.stub('lambda').get_function(FunctionName='myappname')\
-                .raises_error(error_code='ResourceNotFoundException',
-                              message='ResourceNotFound')
+        stubbed_session.stub('lambda').get_function(FunctionName='myappname') \
+            .raises_error(error_code='ResourceNotFoundException',
+                          message='ResourceNotFound')
 
         stubbed_session.activate_stubs()
 
@@ -358,9 +358,9 @@ class TestLambdaFunctionExists(object):
         stubbed_session.verify_stubs()
 
     def test_lambda_function_bad_error_propagates(self, stubbed_session):
-        stubbed_session.stub('lambda').get_function(FunctionName='myappname')\
-                .raises_error(error_code='UnexpectedError',
-                              message='Unknown')
+        stubbed_session.stub('lambda').get_function(FunctionName='myappname') \
+            .raises_error(error_code='UnexpectedError',
+                          message='Unknown')
 
         stubbed_session.activate_stubs()
 
@@ -373,18 +373,18 @@ class TestLambdaFunctionExists(object):
 
 class TestDeleteLambdaFunction(object):
     def test_lambda_delete_function(self, stubbed_session):
-        stubbed_session.stub('lambda')\
-                       .delete_function(FunctionName='name').returns({})
+        stubbed_session.stub('lambda') \
+            .delete_function(FunctionName='name').returns({})
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.delete_function('name') is None
         stubbed_session.verify_stubs()
 
     def test_lambda_delete_function_already_deleted(self, stubbed_session):
-        stubbed_session.stub('lambda')\
-                       .delete_function(FunctionName='name')\
-                       .raises_error(error_code='ResourceNotFoundException',
-                                     message='Unknown')
+        stubbed_session.stub('lambda') \
+            .delete_function(FunctionName='name') \
+            .raises_error(error_code='ResourceNotFoundException',
+                          message='Unknown')
         stubbed_session.activate_stubs()
 
         awsclient = TypedAWSClient(stubbed_session)
@@ -394,18 +394,18 @@ class TestDeleteLambdaFunction(object):
 
 class TestDeleteRestAPI(object):
     def test_rest_api_delete(self, stubbed_session):
-        stubbed_session.stub('apigateway')\
-                       .delete_rest_api(restApiId='name').returns({})
+        stubbed_session.stub('apigateway') \
+            .delete_rest_api(restApiId='name').returns({})
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.delete_rest_api('name') is None
         stubbed_session.verify_stubs()
 
     def test_rest_api_delete_already_deleted(self, stubbed_session):
-        stubbed_session.stub('apigateway')\
-                       .delete_rest_api(restApiId='name')\
-                       .raises_error(error_code='NotFoundException',
-                                     message='Unknown')
+        stubbed_session.stub('apigateway') \
+            .delete_rest_api(restApiId='name') \
+            .raises_error(error_code='NotFoundException',
+                          message='Unknown')
         stubbed_session.activate_stubs()
 
         awsclient = TypedAWSClient(stubbed_session)
@@ -418,24 +418,24 @@ class TestGetDomainName(object):
         domain_name = 'test_domain'
         certificate_arn = 'arn:aws:acm:us-east-1:aws_id:certificate/12345'
         regional_name = 'test.execute-api.us-east-1.amazonaws.com'
-        stubbed_session.stub('apigateway')\
-            .get_domain_name(domainName=domain_name)\
+        stubbed_session.stub('apigateway') \
+            .get_domain_name(domainName=domain_name) \
             .returns({
-                'domainName': 'test_domain',
-                'certificateUploadDate': datetime.datetime.now(),
-                'regionalDomainName': regional_name,
-                'regionalHostedZoneId': 'TEST1TEST1TESTQ1',
-                'regionalCertificateArn': certificate_arn,
-                'endpointConfiguration': {
-                    'types': ['REGIONAL']
-                },
-                'domainNameStatus': 'AVAILABLE',
-                'securityPolicy': 'TLS_1_0',
-                'tags': {
-                    'some_key1': 'test_value1',
-                    'some_key2': 'test_value2'
-                }
-            })
+            'domainName': 'test_domain',
+            'certificateUploadDate': datetime.datetime.now(),
+            'regionalDomainName': regional_name,
+            'regionalHostedZoneId': 'TEST1TEST1TESTQ1',
+            'regionalCertificateArn': certificate_arn,
+            'endpointConfiguration': {
+                'types': ['REGIONAL']
+            },
+            'domainNameStatus': 'AVAILABLE',
+            'securityPolicy': 'TLS_1_0',
+            'tags': {
+                'some_key1': 'test_value1',
+                'some_key2': 'test_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         result = awsclient.get_domain_name(domain_name)['domainName']
@@ -457,24 +457,24 @@ class TestGetDomainName(object):
         domain_name = 'test_domain'
         certificate_arn = 'arn:aws:acm:us-east-1:aws_id:certificate/12345'
         regional_name = 'test.execute-api.us-east-1.amazonaws.com'
-        stubbed_session.stub('apigateway')\
-            .get_domain_name(domainName=domain_name)\
+        stubbed_session.stub('apigateway') \
+            .get_domain_name(domainName=domain_name) \
             .returns({
-                'domainName': 'test_domain',
-                'certificateUploadDate': datetime.datetime.now(),
-                'regionalDomainName': regional_name,
-                'regionalHostedZoneId': 'TEST1TEST1TESTQ1',
-                'regionalCertificateArn': certificate_arn,
-                'endpointConfiguration': {
-                    'types': ['REGIONAL']
-                },
-                'domainNameStatus': 'AVAILABLE',
-                'securityPolicy': 'TLS_1_0',
-                'tags': {
-                    'some_key1': 'test_value1',
-                    'some_key2': 'test_value2'
-                }
-            })
+            'domainName': 'test_domain',
+            'certificateUploadDate': datetime.datetime.now(),
+            'regionalDomainName': regional_name,
+            'regionalHostedZoneId': 'TEST1TEST1TESTQ1',
+            'regionalCertificateArn': certificate_arn,
+            'endpointConfiguration': {
+                'types': ['REGIONAL']
+            },
+            'domainNameStatus': 'AVAILABLE',
+            'securityPolicy': 'TLS_1_0',
+            'tags': {
+                'some_key1': 'test_value1',
+                'some_key2': 'test_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.domain_name_exists(domain_name)
@@ -497,20 +497,20 @@ class TestGetDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_domain_name(DomainName=domain_name) \
             .returns({
-                'DomainName': 'test_domain',
-                'DomainNameConfigurations': [{
-                    'ApiGatewayDomainName': regional_name,
-                    'CertificateArn': certificate_arn,
-                    'EndpointType': 'REGIONAL',
-                    'HostedZoneId': 'TEST1TEST1TESTQ1',
-                    'SecurityPolicy': 'TLS_1_0',
-                    'DomainNameStatus': 'AVAILABLE'
-                }],
-                'Tags': {
-                    'some_key1': 'some_value1',
-                    'some_key2': 'some_value2'
-                }
-            })
+            'DomainName': 'test_domain',
+            'DomainNameConfigurations': [{
+                'ApiGatewayDomainName': regional_name,
+                'CertificateArn': certificate_arn,
+                'EndpointType': 'REGIONAL',
+                'HostedZoneId': 'TEST1TEST1TESTQ1',
+                'SecurityPolicy': 'TLS_1_0',
+                'DomainNameStatus': 'AVAILABLE'
+            }],
+            'Tags': {
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.domain_name_exists_v2(domain_name)
@@ -520,9 +520,9 @@ class TestGetDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_domain_name(DomainName=domain_name) \
             .raises_error(
-                error_code='NotFoundException',
-                message='Unknown'
-            )
+            error_code='NotFoundException',
+            message='Unknown'
+        )
         stubbed_session.activate_stubs()
 
         awsclient = TypedAWSClient(stubbed_session)
@@ -535,15 +535,15 @@ class TestGetApiMapping(object):
         path = '(none)'
         stubbed_session.stub('apigatewayv2') \
             .get_api_mappings(
-                DomainName=domain_name,
-            ).returns({
-                'Items': [{
-                    'ApiMappingKey': '(none)',
-                    'ApiMappingId': 'mapping_id',
-                    'ApiId': 'rest_api_id',
-                    'Stage': 'test'
-                }]
-            })
+            DomainName=domain_name,
+        ).returns({
+            'Items': [{
+                'ApiMappingKey': '(none)',
+                'ApiMappingId': 'mapping_id',
+                'ApiId': 'rest_api_id',
+                'Stage': 'test'
+            }]
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.api_mapping_exists(domain_name, path)
@@ -553,15 +553,15 @@ class TestGetApiMapping(object):
         path = 'path-key'
         stubbed_session.stub('apigatewayv2') \
             .get_api_mappings(
-                DomainName=domain_name,
-            ).returns({
-                'Items': [{
-                    'ApiMappingKey': '(none)',
-                    'ApiMappingId': 'mapping_id',
-                    'ApiId': 'rest_api_id',
-                    'Stage': 'test'
-                }]
-            })
+            DomainName=domain_name,
+        ).returns({
+            'Items': [{
+                'ApiMappingKey': '(none)',
+                'ApiMappingId': 'mapping_id',
+                'ApiId': 'rest_api_id',
+                'Stage': 'test'
+            }]
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert not awsclient.api_mapping_exists(domain_name, path)
@@ -571,11 +571,11 @@ class TestGetApiMapping(object):
         path = '/unknown'
         stubbed_session.stub('apigatewayv2') \
             .get_api_mappings(
-                DomainName=domain_name,
-            ).raises_error(
-                error_code='NotFoundException',
-                message='Unknown'
-            )
+            DomainName=domain_name,
+        ).raises_error(
+            error_code='NotFoundException',
+            message='Unknown'
+        )
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert not awsclient.api_mapping_exists(domain_name, path)
@@ -607,8 +607,8 @@ class TestCreateApiMapping(object):
             api_id=api_id,
             stage=stage
         ) == {
-            'key': '/'
-        }
+                   'key': '/'
+               }
 
     def test_create_api_mapping_with_path(self, stubbed_session):
         domain_name = 'test_domain'
@@ -635,8 +635,8 @@ class TestCreateApiMapping(object):
             api_id=api_id,
             stage=stage
         ) == {
-            'key': '/path-key'
-        }
+                   'key': '/path-key'
+               }
 
 
 class TestCreateBasePathMapping(object):
@@ -647,15 +647,15 @@ class TestCreateBasePathMapping(object):
         stage = 'test'
         stubbed_session.stub('apigateway') \
             .create_base_path_mapping(
-                domainName=domain_name,
-                basePath=path_key,
-                restApiId=api_id,
-                stage=stage
-            ).returns({
-                'restApiId': api_id,
-                'basePath': '(none)',
-                'stage': stage
-            })
+            domainName=domain_name,
+            basePath=path_key,
+            restApiId=api_id,
+            stage=stage
+        ).returns({
+            'restApiId': api_id,
+            'basePath': '(none)',
+            'stage': stage
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.create_base_path_mapping(
@@ -664,8 +664,8 @@ class TestCreateBasePathMapping(object):
             api_id=api_id,
             stage=stage
         ) == {
-            'key': '/'
-        }
+                   'key': '/'
+               }
 
     def test_create_base_path_mapping_with_path(self, stubbed_session):
         domain_name = 'test_domain'
@@ -674,15 +674,15 @@ class TestCreateBasePathMapping(object):
         stage = 'test'
         stubbed_session.stub('apigateway') \
             .create_base_path_mapping(
-                domainName=domain_name,
-                basePath=path_key,
-                restApiId=api_id,
-                stage=stage
-            ).returns({
-                'restApiId': api_id,
-                'basePath': 'path-key',
-                'stage': stage
-            })
+            domainName=domain_name,
+            basePath=path_key,
+            restApiId=api_id,
+            stage=stage
+        ).returns({
+            'restApiId': api_id,
+            'basePath': 'path-key',
+            'stage': stage
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.create_base_path_mapping(
@@ -691,8 +691,8 @@ class TestCreateBasePathMapping(object):
             api_id=api_id,
             stage=stage
         ) == {
-            'key': '/path-key'
-        }
+                   'key': '/path-key'
+               }
 
     def test_create_base_path_mapping_failed(self, stubbed_session):
         domain_name = 'test_domain'
@@ -704,14 +704,14 @@ class TestCreateBasePathMapping(object):
                   'numbers and one of $-_.+!*\'()'
         stubbed_session.stub('apigateway') \
             .create_base_path_mapping(
-                domainName=domain_name,
-                basePath=path_key,
-                restApiId=api_id,
-                stage=stage
-            ).raises_error(
-                error_code='BadRequestException',
-                message=err_msg
-            )
+            domainName=domain_name,
+            basePath=path_key,
+            restApiId=api_id,
+            stage=stage
+        ).raises_error(
+            error_code='BadRequestException',
+            message=err_msg
+        )
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         with pytest.raises(botocore.exceptions.ClientError):
@@ -743,33 +743,33 @@ class TestCreateDomainName(object):
     def test_create_rest_api_domain_name(self, stubbed_session):
         stubbed_session.stub('apigateway') \
             .create_domain_name(
-                domainName='test_domain',
-                endpointConfiguration={
-                    'types': ['REGIONAL']
-                },
-                securityPolicy='TLS_1_0',
-                tags={
-                  'some_key1': 'some_value1',
-                  'some_key2': 'some_value2'
-                },
-                regionalCertificateArn='certificate_arn',
-            ).returns({
-                'domainName': 'test_domain',
-                'regionalCertificateName': 'certificate_name',
-                'regionalCertificateArn': 'certificate_arn',
-                'regionalDomainName': 'regional_domain_name',
-                'regionalHostedZoneId': 'hosted_zone_id',
-                'endpointConfiguration': {
-                    'types': ['REGIONAL'],
-                },
-                'domainNameStatus': 'AVAILABLE',
-                'domainNameStatusMessage': 'string',
-                'securityPolicy': 'TLS_1_0',
-                'tags': {
-                    'some_key1': 'some_value1',
-                    'some_key2': 'some_value2'
-                }
-            })
+            domainName='test_domain',
+            endpointConfiguration={
+                'types': ['REGIONAL']
+            },
+            securityPolicy='TLS_1_0',
+            tags={
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            },
+            regionalCertificateArn='certificate_arn',
+        ).returns({
+            'domainName': 'test_domain',
+            'regionalCertificateName': 'certificate_name',
+            'regionalCertificateArn': 'certificate_arn',
+            'regionalDomainName': 'regional_domain_name',
+            'regionalHostedZoneId': 'hosted_zone_id',
+            'endpointConfiguration': {
+                'types': ['REGIONAL'],
+            },
+            'domainNameStatus': 'AVAILABLE',
+            'domainNameStatusMessage': 'string',
+            'securityPolicy': 'TLS_1_0',
+            'tags': {
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.create_domain_name(
@@ -779,49 +779,49 @@ class TestCreateDomainName(object):
             security_policy='TLS_1_0',
             certificate_arn='certificate_arn',
             tags={
-              'some_key1': 'some_value1',
-              'some_key2': 'some_value2'
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
             }
         ) == {
-            'domain_name': 'test_domain',
-            'security_policy': 'TLS_1_0',
-            'alias_domain_name': 'regional_domain_name',
-            'hosted_zone_id': 'hosted_zone_id',
-            'certificate_arn': 'certificate_arn'
-        }
+                   'domain_name': 'test_domain',
+                   'security_policy': 'TLS_1_0',
+                   'alias_domain_name': 'regional_domain_name',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'certificate_arn': 'certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_create_rest_api_domain_name_no_regional(self, stubbed_session):
         stubbed_session.stub('apigateway') \
             .create_domain_name(
-                domainName='test_domain',
-                endpointConfiguration={
-                    'types': ['EDGE']
-                },
-                securityPolicy='TLS_1_0',
-                tags={
-                  'some_key1': 'some_value1',
-                  'some_key2': 'some_value2'
-                },
-                certificateArn='certificate_arn',
-            ).returns({
-                'domainName': 'test_domain',
-                'certificateName': 'certificate_name',
-                'certificateArn': 'certificate_arn',
-                'certificateUploadDate': datetime.datetime.now(),
-                'endpointConfiguration': {
-                    'types': ['EDGE'],
-                },
-                'distributionDomainName': 'dist_test_domain',
-                'distributionHostedZoneId': 'hosted_zone_id',
-                'domainNameStatus': 'AVAILABLE',
-                'domainNameStatusMessage': 'string',
-                'securityPolicy': 'TLS_1_0',
-                'tags': {
-                    'some_key1': 'some_value1',
-                    'some_key2': 'some_value2'
-                }
-            })
+            domainName='test_domain',
+            endpointConfiguration={
+                'types': ['EDGE']
+            },
+            securityPolicy='TLS_1_0',
+            tags={
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            },
+            certificateArn='certificate_arn',
+        ).returns({
+            'domainName': 'test_domain',
+            'certificateName': 'certificate_name',
+            'certificateArn': 'certificate_arn',
+            'certificateUploadDate': datetime.datetime.now(),
+            'endpointConfiguration': {
+                'types': ['EDGE'],
+            },
+            'distributionDomainName': 'dist_test_domain',
+            'distributionHostedZoneId': 'hosted_zone_id',
+            'domainNameStatus': 'AVAILABLE',
+            'domainNameStatusMessage': 'string',
+            'securityPolicy': 'TLS_1_0',
+            'tags': {
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.create_domain_name(
@@ -831,52 +831,52 @@ class TestCreateDomainName(object):
             security_policy='TLS_1_0',
             certificate_arn='certificate_arn',
             tags={
-              'some_key1': 'some_value1',
-              'some_key2': 'some_value2'
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
             }
         ) == {
-            'domain_name': 'test_domain',
-            'security_policy': 'TLS_1_0',
-            'hosted_zone_id': 'hosted_zone_id',
-            'alias_domain_name': 'dist_test_domain',
-            'certificate_arn': 'certificate_arn'
-        }
+                   'domain_name': 'test_domain',
+                   'security_policy': 'TLS_1_0',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'alias_domain_name': 'dist_test_domain',
+                   'certificate_arn': 'certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_create_websocket_api_custom_domain(self, stubbed_session):
         stubbed_session.stub('apigatewayv2') \
             .create_domain_name(
-                DomainName='test_websocket_domain',
-                DomainNameConfigurations=[{
-                    'ApiGatewayDomainName': 'test_websocket_domain',
+            DomainName='test_websocket_domain',
+            DomainNameConfigurations=[{
+                'ApiGatewayDomainName': 'test_websocket_domain',
+                'CertificateArn': 'certificate_arn',
+                'EndpointType': 'REGIONAL',
+                'SecurityPolicy': 'TLS_1_2',
+                'DomainNameStatus': 'AVAILABLE',
+            }],
+            Tags={
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            }
+        ).returns({
+            'DomainName': 'test_websocket_domain',
+            'DomainNameConfigurations': [
+                {
+                    'ApiGatewayDomainName': 'd-1234',
                     'CertificateArn': 'certificate_arn',
+                    'CertificateName': 'certificate_name',
+                    'CertificateUploadDate': datetime.datetime.now(),
                     'EndpointType': 'REGIONAL',
+                    'HostedZoneId': 'hosted_zone_id',
                     'SecurityPolicy': 'TLS_1_2',
                     'DomainNameStatus': 'AVAILABLE',
-                }],
-                Tags={
-                    'some_key1': 'some_value1',
-                    'some_key2': 'some_value2'
-                }
-            ).returns({
-                'DomainName': 'test_websocket_domain',
-                'DomainNameConfigurations': [
-                    {
-                        'ApiGatewayDomainName': 'd-1234',
-                        'CertificateArn': 'certificate_arn',
-                        'CertificateName': 'certificate_name',
-                        'CertificateUploadDate': datetime.datetime.now(),
-                        'EndpointType': 'REGIONAL',
-                        'HostedZoneId': 'hosted_zone_id',
-                        'SecurityPolicy': 'TLS_1_2',
-                        'DomainNameStatus': 'AVAILABLE',
-                    },
-                ],
-                'Tags': {
-                    'some_key1': 'some_value1',
-                    'some_key2': 'some_value2'
-                }
-            })
+                },
+            ],
+            'Tags': {
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
+            }
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.create_domain_name(
@@ -886,16 +886,16 @@ class TestCreateDomainName(object):
             security_policy='TLS_1_2',
             certificate_arn='certificate_arn',
             tags={
-              'some_key1': 'some_value1',
-              'some_key2': 'some_value2'
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
             }
         ) == {
-            'domain_name': 'test_websocket_domain',
-            'alias_domain_name': 'd-1234',
-            'security_policy': 'TLS_1_2',
-            'hosted_zone_id': 'hosted_zone_id',
-            'certificate_arn': 'certificate_arn'
-        }
+                   'domain_name': 'test_websocket_domain',
+                   'alias_domain_name': 'd-1234',
+                   'security_policy': 'TLS_1_2',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'certificate_arn': 'certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_get_custom_domain_params_v2(self, stubbed_session):
@@ -906,8 +906,8 @@ class TestCreateDomainName(object):
             security_policy='TLS_1_2',
             certificate_arn='certificate_arn',
             tags={
-              'some_key1': 'some_value1',
-              'some_key2': 'some_value2'
+                'some_key1': 'some_value1',
+                'some_key2': 'some_value2'
             },
         )
         assert result == {
@@ -1028,8 +1028,8 @@ class TestUpdateDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_tags(ResourceArn=arn) \
             .returns({
-                'Tags': {}
-            })
+            'Tags': {}
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.update_domain_name(
@@ -1039,12 +1039,12 @@ class TestUpdateDomainName(object):
             security_policy='TLS_1_2',
             certificate_arn='certificate_arn',
         ) == {
-            'domain_name': 'test_domain',
-            'alias_domain_name': 'd-1234',
-            'security_policy': 'TLS_1_2',
-            'hosted_zone_id': 'hosted_zone_id',
-            'certificate_arn': 'certificate_arn'
-        }
+                   'domain_name': 'test_domain',
+                   'alias_domain_name': 'd-1234',
+                   'security_policy': 'TLS_1_2',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'certificate_arn': 'certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_update_domain_name_failed(self, stubbed_session):
@@ -1059,9 +1059,9 @@ class TestUpdateDomainName(object):
                 'SecurityPolicy': 'TLS_1_2',
                 'DomainNameStatus': 'AVAILABLE',
             }]).raises_error(
-                error_code='NotFoundException',
-                message=err_msg
-            )
+            error_code='NotFoundException',
+            message=err_msg
+        )
 
         awsclient = TypedAWSClient(stubbed_session)
         with pytest.raises(botocore.exceptions.ClientError):
@@ -1164,8 +1164,8 @@ class TestUpdateDomainName(object):
         ]
 
     def test_update_domain_name_http_protocol_regional(
-        self,
-        stubbed_session
+            self,
+            stubbed_session
     ):
         stubbed_session.stub('apigateway') \
             .update_domain_name(
@@ -1217,8 +1217,8 @@ class TestUpdateDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_tags(ResourceArn=arn) \
             .returns({
-                'Tags': {}
-            })
+            'Tags': {}
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.update_domain_name(
@@ -1228,12 +1228,12 @@ class TestUpdateDomainName(object):
             security_policy='TLS_1_2',
             certificate_arn='regional_certificate_arn',
         ) == {
-            'domain_name': 'test_domain',
-            'alias_domain_name': 'regional_domain_name',
-            'security_policy': 'TLS_1_2',
-            'hosted_zone_id': 'hosted_zone_id',
-            'certificate_arn': 'regional_certificate_arn'
-        }
+                   'domain_name': 'test_domain',
+                   'alias_domain_name': 'regional_domain_name',
+                   'security_policy': 'TLS_1_2',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'certificate_arn': 'regional_certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_update_domain_name_http_protocol(
@@ -1290,8 +1290,8 @@ class TestUpdateDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_tags(ResourceArn=arn) \
             .returns({
-                'Tags': {}
-            })
+            'Tags': {}
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.update_domain_name(
@@ -1301,12 +1301,12 @@ class TestUpdateDomainName(object):
             security_policy='TLS_1_0',
             certificate_arn='certificate_arn',
         ) == {
-            'domain_name': 'test_domain',
-            'security_policy': 'TLS_1_0',
-            'alias_domain_name': 'dist_domain_name',
-            'hosted_zone_id': 'hosted_zone_id',
-            'certificate_arn': 'certificate_arn'
-        }
+                   'domain_name': 'test_domain',
+                   'security_policy': 'TLS_1_0',
+                   'alias_domain_name': 'dist_domain_name',
+                   'hosted_zone_id': 'hosted_zone_id',
+                   'certificate_arn': 'certificate_arn'
+               }
         stubbed_session.verify_stubs()
 
     def test_update_domain_name_govcloud(self, stubbed_session):
@@ -1321,8 +1321,8 @@ class TestUpdateDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .get_tags(ResourceArn=arn) \
             .returns({
-                'Tags': {}
-            })
+            'Tags': {}
+        })
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         awsclient.update_domain_name(
@@ -1457,9 +1457,9 @@ class TestDeleteDomainName(object):
         stubbed_session.stub('apigatewayv2') \
             .delete_domain_name(DomainName=domain_name) \
             .raises_error(
-                error_code='NotFoundException',
-                message=err_msg
-            )
+            error_code='NotFoundException',
+            message=err_msg
+        )
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         with pytest.raises(botocore.exceptions.ClientError):
@@ -1485,9 +1485,9 @@ class TestDeleteApiMapping(object):
         domain_name = 'test_domain'
         stubbed_session.stub('apigateway') \
             .delete_base_path_mapping(
-                domainName=domain_name,
-                basePath='foo'
-            ).returns({})
+            domainName=domain_name,
+            basePath='foo'
+        ).returns({})
         stubbed_session.activate_stubs()
 
         awsclient = TypedAWSClient(stubbed_session)
@@ -1502,12 +1502,12 @@ class TestDeleteApiMapping(object):
         err_msg = 'The resource specified in the request was not found.'
         stubbed_session.stub('apigateway') \
             .delete_base_path_mapping(
-                domainName=domain_name,
-                basePath='foo'
-            ).raises_error(
-                error_code='NotFoundException',
-                message=err_msg
-            )
+            domainName=domain_name,
+            basePath='foo'
+        ).raises_error(
+            error_code='NotFoundException',
+            message=err_msg
+        )
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         with pytest.raises(botocore.exceptions.ClientError):
@@ -1520,26 +1520,26 @@ class TestDeleteApiMapping(object):
 class TestGetRestAPI(object):
     def test_rest_api_exists(self, stubbed_session):
         desired_name = 'myappname'
-        stubbed_session.stub('apigateway').get_rest_apis()\
+        stubbed_session.stub('apigateway').get_rest_apis() \
             .returns(
-                {'items': [
-                    {'createdDate': 1, 'id': 'wrongid1', 'name': 'wrong1'},
-                    {'createdDate': 2, 'id': 'correct', 'name': desired_name},
-                    {'createdDate': 3, 'id': 'wrongid3', 'name': 'wrong3'},
-                ]})
+            {'items': [
+                {'createdDate': 1, 'id': 'wrongid1', 'name': 'wrong1'},
+                {'createdDate': 2, 'id': 'correct', 'name': desired_name},
+                {'createdDate': 3, 'id': 'wrongid3', 'name': 'wrong3'},
+            ]})
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.get_rest_api_id(desired_name) == 'correct'
         stubbed_session.verify_stubs()
 
     def test_rest_api_does_not_exist(self, stubbed_session):
-        stubbed_session.stub('apigateway').get_rest_apis()\
+        stubbed_session.stub('apigateway').get_rest_apis() \
             .returns(
-                {'items': [
-                    {'createdDate': 1, 'id': 'wrongid1', 'name': 'wrong1'},
-                    {'createdDate': 2, 'id': 'wrongid1', 'name': 'wrong2'},
-                    {'createdDate': 3, 'id': 'wrongid3', 'name': 'wrong3'},
-                ]})
+            {'items': [
+                {'createdDate': 1, 'id': 'wrongid1', 'name': 'wrong1'},
+                {'createdDate': 2, 'id': 'wrongid1', 'name': 'wrong2'},
+                {'createdDate': 3, 'id': 'wrongid3', 'name': 'wrong3'},
+            ]})
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         assert awsclient.get_rest_api_id('myappname') is None
@@ -1703,7 +1703,6 @@ class TestInvokeLambdaFunction(object):
 
 
 class TestCreateLambdaFunction(object):
-
     SUCCESS_RESPONSE = {
         'FunctionArn': 'arn:12345:name',
         'State': 'Active',
@@ -1846,7 +1845,7 @@ class TestCreateLambdaFunction(object):
             'name', 'myarn', b'foo', 'python2.7', 'app.app',
             subnet_ids=['sn1', 'sn2'],
             security_group_ids=['sg1', 'sg2'],
-            ) == 'arn:12345:name'
+        ) == 'arn:12345:name'
         stubbed_session.verify_stubs()
 
     def test_create_function_with_layers(self, stubbed_session):
@@ -1969,7 +1968,7 @@ class TestCreateLambdaFunction(object):
                 error_code='InvalidParameterValueException',
                 message=('The role defined for the function cannot '
                          'be assumed by Lambda.')
-                )
+            )
 
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
@@ -2091,8 +2090,8 @@ class TestCreateLambdaFunction(object):
         }
         stubbed_session.stub('lambda').create_function(
             **kwargs).raises_error(
-                error_code='RequestEntityTooLargeException',
-                message='')
+            error_code='RequestEntityTooLargeException',
+            message='')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
         with pytest.raises(DeploymentPackageTooLargeError):
@@ -2111,8 +2110,8 @@ class TestCreateLambdaFunction(object):
         }
         stubbed_session.stub('lambda').create_function(
             **kwargs).raises_error(
-                error_code='InvalidParameterValueException',
-                message='Unzipped size must be smaller than ...')
+            error_code='InvalidParameterValueException',
+            message='Unzipped size must be smaller than ...')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
         with pytest.raises(DeploymentPackageTooLargeError):
@@ -2122,7 +2121,6 @@ class TestCreateLambdaFunction(object):
 
 
 class TestUpdateLambdaFunction(object):
-
     SUCCESS_RESPONSE = {
         'LastUpdateStatus': 'Successful',
     }
@@ -2155,7 +2153,7 @@ class TestUpdateLambdaFunction(object):
         lambda_client.update_function_configuration(
             FunctionName='name',
             Environment={'Variables': {"FOO": "BAR"}}).returns(
-                self.SUCCESS_RESPONSE)
+            self.SUCCESS_RESPONSE)
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session)
         awsclient.update_function(
@@ -2227,8 +2225,8 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': function_arn,
-                 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': function_arn,
+             'LastUpdateStatus': 'Successful'})
         lambda_client.list_tags(
             Resource=function_arn).returns({'Tags': {}})
         lambda_client.tag_resource(
@@ -2245,8 +2243,8 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': function_arn,
-                 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': function_arn,
+             'LastUpdateStatus': 'Successful'})
         lambda_client.list_tags(
             Resource=function_arn).returns({'Tags': {'MyKey': 'MyOrigValue'}})
         lambda_client.tag_resource(
@@ -2263,11 +2261,11 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': function_arn,
-                 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': function_arn,
+             'LastUpdateStatus': 'Successful'})
         lambda_client.list_tags(
             Resource=function_arn).returns(
-                {'Tags': {'KeyToRemove': 'Value'}})
+            {'Tags': {'KeyToRemove': 'Value'}})
         lambda_client.untag_resource(
             Resource=function_arn, TagKeys=['KeyToRemove']).returns({})
         stubbed_session.activate_stubs()
@@ -2282,8 +2280,8 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': function_arn,
-                 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': function_arn,
+             'LastUpdateStatus': 'Successful'})
         lambda_client.list_tags(
             Resource=function_arn).returns({'Tags': {'MyKey': 'SameValue'}})
         stubbed_session.activate_stubs()
@@ -2298,8 +2296,8 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': function_arn,
-                 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': function_arn,
+             'LastUpdateStatus': 'Successful'})
         lambda_client.update_function_configuration(
             FunctionName='name',
             Role='role-arn').returns(self.SUCCESS_RESPONSE)
@@ -2312,7 +2310,7 @@ class TestUpdateLambdaFunction(object):
     def test_update_function_is_retried_and_succeeds(self, stubbed_session):
         stubbed_session.stub('lambda').update_function_code(
             FunctionName='name', ZipFile=b'foo').returns(
-                {'FunctionArn': 'arn', 'LastUpdateStatus': 'Successful'})
+            {'FunctionArn': 'arn', 'LastUpdateStatus': 'Successful'})
 
         update_config_kwargs = {
             'FunctionName': 'name',
@@ -2322,9 +2320,9 @@ class TestUpdateLambdaFunction(object):
         # then succeed to update the lambda function.
         stubbed_session.stub('lambda').update_function_configuration(
             **update_config_kwargs).raises_error(
-                error_code='InvalidParameterValueException',
-                message=('The role defined for the function cannot '
-                         'be assumed by Lambda.'))
+            error_code='InvalidParameterValueException',
+            message=('The role defined for the function cannot '
+                     'be assumed by Lambda.'))
         stubbed_session.stub('lambda').update_function_configuration(
             **update_config_kwargs).raises_error(
             error_code='InvalidParameterValueException',
@@ -2348,9 +2346,9 @@ class TestUpdateLambdaFunction(object):
         for _ in range(TypedAWSClient.LAMBDA_CREATE_ATTEMPTS):
             stubbed_session.stub('lambda').update_function_configuration(
                 **update_config_kwargs).raises_error(
-                    error_code='InvalidParameterValueException',
-                    message=('The role defined for the function cannot '
-                             'be assumed by Lambda.'))
+                error_code='InvalidParameterValueException',
+                message=('The role defined for the function cannot '
+                         'be assumed by Lambda.'))
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
 
@@ -2363,7 +2361,7 @@ class TestUpdateLambdaFunction(object):
         too_large_content = b'a' * 60 * (1024 ** 2)
         stubbed_session.stub('lambda').update_function_code(
             FunctionName='name', ZipFile=too_large_content).raises_error(
-                error=RequestsConnectionError())
+            error=RequestsConnectionError())
 
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
@@ -2372,14 +2370,14 @@ class TestUpdateLambdaFunction(object):
         stubbed_session.verify_stubs()
         assert excinfo.value.context.function_name == 'name'
         assert (
-            excinfo.value.context.client_method_name == 'update_function_code')
+                excinfo.value.context.client_method_name == 'update_function_code')
         assert excinfo.value.context.deployment_size == 60 * (1024 ** 2)
 
     def test_no_raise_large_deployment_error_when_small_deployment_size(
             self, stubbed_session):
         stubbed_session.stub('lambda').update_function_code(
             FunctionName='name', ZipFile=b'foo').raises_error(
-                error=RequestsConnectionError())
+            error=RequestsConnectionError())
 
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
@@ -2394,8 +2392,8 @@ class TestUpdateLambdaFunction(object):
             self, stubbed_session):
         stubbed_session.stub('lambda').update_function_code(
             FunctionName='name', ZipFile=b'foo').raises_error(
-                error_code='RequestEntityTooLargeException',
-                message='')
+            error_code='RequestEntityTooLargeException',
+            message='')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
         with pytest.raises(DeploymentPackageTooLargeError):
@@ -2406,8 +2404,8 @@ class TestUpdateLambdaFunction(object):
             self, stubbed_session):
         stubbed_session.stub('lambda').update_function_code(
             FunctionName='name', ZipFile=b'foo').raises_error(
-                error_code='InvalidParameterValueException',
-                message='Unzipped size must be smaller than ...')
+            error_code='InvalidParameterValueException',
+            message='Unzipped size must be smaller than ...')
         stubbed_session.activate_stubs()
         awsclient = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
         with pytest.raises(DeploymentPackageTooLargeError):
@@ -2419,8 +2417,8 @@ class TestUpdateLambdaFunction(object):
         lambda_client = stubbed_session.stub('lambda')
         lambda_client.update_function_code(
             FunctionName='name', ZipFile=b'foo').returns({
-                'LastUpdateStatus': 'InProgress',
-            })
+            'LastUpdateStatus': 'InProgress',
+        })
         lambda_client.get_function_configuration(
             FunctionName='name',
         ).returns({'LastUpdateStatus': 'InProgress'})
@@ -2493,8 +2491,8 @@ class TestCanDeleteRole(object):
     def test_can_delete_role(self, stubbed_session):
         stubbed_session.stub('iam').list_role_policies(
             RoleName='myrole').returns({
-                'PolicyNames': ['mypolicy']
-            })
+            'PolicyNames': ['mypolicy']
+        })
         stubbed_session.stub('iam').delete_role_policy(
             RoleName='myrole',
             PolicyName='mypolicy').returns({})
@@ -2798,10 +2796,10 @@ class TestWebsocketAPI(object):
         stubbed_session.verify_stubs()
 
     def test_rest_api_delete_already_deleted(self, stubbed_session):
-        stubbed_session.stub('apigatewayv2')\
-                       .delete_api(ApiId='name')\
-                       .raises_error(error_code='NotFoundException',
-                                     message='Unknown')
+        stubbed_session.stub('apigatewayv2') \
+            .delete_api(ApiId='name') \
+            .raises_error(error_code='NotFoundException',
+                          message='Unknown')
         stubbed_session.activate_stubs()
 
         awsclient = TypedAWSClient(stubbed_session)
@@ -2960,13 +2958,12 @@ class TestWebsocketAPI(object):
 
 
 class TestAddPermissionsForAuthorizer(object):
-
     FUNCTION_ARN = (
         'arn:aws:lambda:us-west-2:1:function:app-dev-name'
     )
     GOOD_ARN = (
-        'arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/'
-        '%s/invocations' % FUNCTION_ARN
+            'arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/'
+            '%s/invocations' % FUNCTION_ARN
     )
 
     def test_can_add_permission_for_authorizer(self, stubbed_session):
@@ -2999,7 +2996,7 @@ class TestAddPermissionsForAuthorizer(object):
     def test_random_id_can_be_omitted(self, stubbed_session):
         stubbed_session.stub('apigateway').get_authorizers(
             restApiId='rest-api-id').returns({
-                'items': [{'authorizerUri': self.GOOD_ARN, 'id': 'good'}]})
+            'items': [{'authorizerUri': self.GOOD_ARN, 'id': 'good'}]})
         source_arn = (
             'arn:aws:execute-api:us-west-2:1:rest-api-id/authorizers/good'
         )
@@ -3056,7 +3053,7 @@ def test_import_rest_api(stubbed_session):
     apig.import_rest_api(
         parameters={'endpointConfigurationTypes': 'EDGE'},
         body=json.dumps(swagger_doc, indent=2)).returns(
-            {'id': 'rest_api_id'})
+        {'id': 'rest_api_id'})
 
     stubbed_session.activate_stubs()
     awsclient = TypedAWSClient(stubbed_session)
@@ -3102,8 +3099,8 @@ def test_can_get_or_create_rule_arn_with_pattern(stubbed_session):
     events.put_rule(
         Name='rule-name',
         EventPattern='{"source": ["aws.ec2"]}').returns({
-            'RuleArn': 'rule-arn',
-        })
+        'RuleArn': 'rule-arn',
+    })
 
     stubbed_session.activate_stubs()
     awsclient = TypedAWSClient(stubbed_session)
@@ -3120,8 +3117,8 @@ def test_can_get_or_create_rule_arn(stubbed_session):
         Name='rule-name',
         Description='rule-description',
         ScheduleExpression='rate(1 hour)').returns({
-            'RuleArn': 'rule-arn',
-        })
+        'RuleArn': 'rule-arn',
+    })
 
     stubbed_session.activate_stubs()
     awsclient = TypedAWSClient(stubbed_session)
@@ -3174,16 +3171,16 @@ def test_skip_if_permission_already_granted(stubbed_session):
         'Id': 'default',
         'Statement': [
             {'Action': 'lambda:InvokeFunction',
-                'Condition': {
-                    'ArnLike': {
-                        'AWS:SourceArn': 'arn:aws:events:us-east-1'
-                                         ':123456789012:rule/MyScheduledRule',
-                    }
-                },
-                'Effect': 'Allow',
-                'Principal': {'Service': 'events.amazonaws.com'},
-                'Resource': 'resource-arn',
-                'Sid': 'statement-id'},
+             'Condition': {
+                 'ArnLike': {
+                     'AWS:SourceArn': 'arn:aws:events:us-east-1'
+                                      ':123456789012:rule/MyScheduledRule',
+                 }
+             },
+             'Effect': 'Allow',
+             'Principal': {'Service': 'events.amazonaws.com'},
+             'Resource': 'resource-arn',
+             'Sid': 'statement-id'},
         ],
         'Version': '2012-10-17'
     }
@@ -3689,6 +3686,43 @@ def test_can_retry_create_sqs_event_source(stubbed_session):
 
 
 def test_can_delete_sqs_event_source(stubbed_session):
+    lambda_stub = stubbed_session.stub('lambda')
+    lambda_stub.delete_event_source_mapping(
+        UUID='my-uuid',
+    ).returns({})
+
+    stubbed_session.activate_stubs()
+    client = TypedAWSClient(stubbed_session, mock.Mock(spec=time.sleep))
+    client.remove_lambda_event_source(
+        'my-uuid',
+    )
+    stubbed_session.verify_stubs()
+
+
+def test_can_create_rabbitmq_event_source(stubbed_session):
+    rabbitmq_arn = 'arn:aws:mq:us-west-2:...:broker/MyRabbitMQBroker'
+    function_name = 'myfunction'
+    batch_size = 100
+    queue = 'myqueue'
+
+    lambda_stub = stubbed_session.stub('lambda')
+    lambda_stub.create_event_source_mapping(
+        EventSourceArn=rabbitmq_arn,
+        FunctionName=function_name,
+        BatchSize=batch_size,
+        Queues=[queue]
+    ).returns({'UUID': 'my-uuid'})
+
+    stubbed_session.activate_stubs()
+    client = TypedAWSClient(stubbed_session)
+    result = client.create_lambda_event_source(
+        rabbitmq_arn, function_name, batch_size, queues=[queue]
+    )
+    assert result == 'my-uuid'
+    stubbed_session.verify_stubs()
+
+
+def test_can_delete_rabbitmq_event_source(stubbed_session):
     lambda_stub = stubbed_session.stub('lambda')
     lambda_stub.delete_event_source_mapping(
         UUID='my-uuid',

@@ -776,8 +776,8 @@ class DecoratorAPI(object):
         )
 
     def on_rabbitmq_message(self, queue: Optional[str] = None,
-                            broker_arn: Optional[str] = None,
-                            secrets_arn: Optional[str] = None,
+                            broker_arn: Optional[str] = os.environ.get("RABBITMQ_BROKER_ARN"),
+                            secrets_arn: Optional[str] = os.environ.get("RABBITMQ_SECRETS_ARN"),
                             batch_size: int = 1,
                             name: Optional[str] = None,
                             maximum_batching_window_in_seconds: int = 0

@@ -78,6 +78,17 @@ def sample_sqs_event_app():
 
 
 @fixture
+def sample_rabbitmq_event_app():
+    app = Chalice('rabbitmq-event')
+
+    @app.on_rabbitmq_message(queue='myqueue')
+    def handler(event):
+        pass
+
+    return app
+
+
+@fixture
 def sample_kinesis_event_app():
     app = Chalice('kinesis-event')
 
